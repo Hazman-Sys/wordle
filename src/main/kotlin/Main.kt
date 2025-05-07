@@ -4,13 +4,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -22,8 +19,7 @@ import androidx.compose.ui.window.application
 import androidx.compose.ui.text.input.TextFieldValue
 
 @Composable
-fun App(key: Char) {
-    println(key)
+fun App(keys: List<Char>) {
 
     val words = listOf(
         "Igloo",
@@ -40,7 +36,15 @@ fun App(key: Char) {
         "Carom",
         "Ouija"
     )
-    val randomWord = words.random()
+    val randomWord = words.random() // Выбираем рандом слово
+
+    val userChar = 'I'
+
+
+    randomWord.find {
+        it == userChar // Сравниваем слово пользователя с выбранным словом
+    }
+    randomWord[0] == userChar // зеленое если совпадает
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -53,65 +57,79 @@ fun App(key: Char) {
             }
     ) {
 
-        val squaresList = (0..29).toList()
+        val squaresList = (0..29).toList() // Блоки
+
         LazyVerticalGrid(
             columns = GridCells.Fixed(5),
             modifier = Modifier.size(280.dp, 414.dp),
         ) {
-            items(squaresList) { square ->
-
-
-//---------------------------------------------------------------------------------------------------
+            itemsIndexed(squaresList) { index, square ->
+//---------------------------------------------------------------------------------------------------//
                 var textState by remember { mutableStateOf(TextFieldValue("")) }
 
                 Square(
 
                 ) {
                     Text(
-                        text = "$key"
+                        text = "${keys.getOrElse(index) { ' ' }}"
                     )
                 }
             }
         }
     }
+
 }
 
 
 fun main() = application {
+    val charList = mutableStateListOf<Char>()
+    var index by remember { mutableStateOf(0) } // переход автоматом на следующую строку
     var key by remember {
         mutableStateOf(' ')
     }
     Window(
         onCloseRequest = ::exitApplication,
         onKeyEvent = { keyEvent ->
-            if(keyEvent.type == KeyEventType.KeyUp){
-                key = keyEvent.key.keyCode.toChar()
+            if (keyEvent.key == Key.Enter) {
+                println("Enter")
+            } else {
+                if (keyEvent.key == Key.Backspace) {
+                    println("BackSpace")       // Запрещаем использовать Enter и BackSpace
+                } else {
+                    if (keyEvent.type == KeyEventType.KeyUp) {
+                        charList.add(keyEvent.key.keyCode.toChar())
+                    }
+                }
             }
+
             false
         }
     ) {
         //App()
         MaterialTheme {
-            Surface { App(
-                key = key
-            ) }
+            Surface {
+                App(
+                    keys = charList
+                )
+            }
         }
 
     }
 }
 
+// ---------------------------------------------------------------------------------------------- //
 @Composable
 fun Square(
     content: @Composable () -> Unit
 ) {
-    var color by remember {  mutableStateOf(Color(0xfbfcff)) }
+    var color by remember { mutableStateOf(Color(0xfbfcff)) }
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
             .requiredSize(56.dp, 56.dp)
             .padding(3.dp)
             .clip(RoundedCornerShape(5.dp))
-            .background(color)
+            .background(color)                      // Свойства блока ( настройка )
             .border(2.dp, Color(0xffdee1e9), RoundedCornerShape(5.dp))
             .padding(3.dp)
     ) {
