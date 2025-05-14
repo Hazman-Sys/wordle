@@ -17,6 +17,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.compose.ui.text.input.TextFieldValue
+import kotlin.math.floor
+import kotlin.math.round
+
+enum class State(val rgb: Int) {
+    BASE(0xfbfcff),
+    NO(0x787c7e),
+    YELLOW(0xc7b660),
+    GREEN(0x6dab68)
+}
 
 @Composable
 fun App(keys: List<Char>) {
@@ -36,15 +45,35 @@ fun App(keys: List<Char>) {
         "Carom",
         "Ouija"
     )
-    val randomWord = words.random() // Выбираем рандом слово
+    var randomWord by remember { mutableStateOf<String>("") }
+    LaunchedEffect(null, { // LaunchedEffect чтобы каждое нажатие не было новое слово
+        randomWord = words.random() // Выбираем рандом слово
+    })
 
-    val userChar = 'I'
+    val squares = mutableStateListOf<@Composable () -> Unit>()
 
+    val userChar = if (keys.isNotEmpty()) keys[keys.lastIndex] else "F" // последняя буква
+    val sigma = floor((keys.size / 5).toDouble()) // кол-во заполненных строк.
 
-    randomWord.find {
-        it == userChar // Сравниваем слово пользователя с выбранным словом
+    if (sigma == keys.size.toDouble() / 5 && keys.isNotEmpty()) { // сравниваем кол-во заполненных строк с кол-вом букв
+        val wordInLine = mutableListOf<Char>() // буквы в последней строке
+        for (i in 1..5) { // цикл из 5 раз так как в строке 5 букв
+            wordInLine.add(keys.reversed()[if (i > 0) i - 1 else i]) // добавялем буквы с нужными индексами
+        }
+        println("sosal? ${wordInLine.reversed()}") // выводим
+
+        // сравниваем финальное слово в строке с выбранным словом.
+        for (i: Char in randomWord.uppercase()) {
+            wordInLine.forEach {
+                if (i == it) {
+
+                    // TODO: ПОЛУЧИТЬ SQUARE ИЗ SQUARES ПОД ИНЕДЕКСОМ randomWord.indexOf(i) И ВЫСТАВИТЬ ЕМУ ЗНАЧЕНИЕ state НА State.Yellow
+                    println(squares)
+                    println("${it} exists in word ${randomWord}. sosal?")
+                }
+            }
+        }
     }
-    randomWord[0] == userChar // зеленое если совпадает
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -57,23 +86,26 @@ fun App(keys: List<Char>) {
             }
     ) {
 
-        val squaresList = (0..29).toList() // Блоки
 
         LazyVerticalGrid(
             columns = GridCells.Fixed(5),
             modifier = Modifier.size(280.dp, 414.dp),
         ) {
-            itemsIndexed(squaresList) { index, square ->
+            itemsIndexed((0..29).toList()) { index, square ->
 //---------------------------------------------------------------------------------------------------//
-                var textState by remember { mutableStateOf(TextFieldValue("")) }
 
-                Square(
-
-                ) {
-                    Text(
-                        text = "${keys.getOrElse(index) { ' ' }}"
+                val square_ = @Composable () {
+                    Square(
+                        state = State.BASE,
+                        content = {
+                            Text(
+                                text = "${keys.getOrElse(index) { ' ' }}"
+                            )
+                        }
                     )
                 }
+                squares.add { square_ }
+                square_()
             }
         }
     }
@@ -97,7 +129,7 @@ fun main() = application {
                     println("BackSpace")       // Запрещаем использовать Enter и BackSpace
                 } else {
                     if (keyEvent.type == KeyEventType.KeyUp) {
-                        charList.add(keyEvent.key.keyCode.toChar())
+                        charList.add(keyEvent.key.keyCode.toInt().toChar()) // ❌toChar() || ✔ toInt().toChar()
                     }
                 }
             }
@@ -120,16 +152,16 @@ fun main() = application {
 // ----------------------------------------------------------------------------------------------- //
 @Composable
 fun Square(
-    content: @Composable () -> Unit
+    content: @Composable () -> Unit,
+    state: State = State.BASE
 ) {
-    var color by remember { mutableStateOf(Color(0xfbfcff)) }
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
             .requiredSize(56.dp, 56.dp)
             .padding(3.dp)
             .clip(RoundedCornerShape(5.dp))
-            .background(color)                      // Свойства блока ( настройка )
+            .background(Color(state.rgb))
             .border(2.dp, Color(0xffdee1e9), RoundedCornerShape(5.dp))
             .padding(3.dp)
     ) {
