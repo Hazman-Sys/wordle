@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.compose.ui.text.input.TextFieldValue
+import kotlinx.coroutines.flow.asFlow
 import kotlin.math.floor
 import kotlin.math.round
 
@@ -29,7 +30,6 @@ enum class State(val rgb: Int) {
 
 @Composable
 fun App(keys: List<Char>) {
-
     val words = listOf(
         "Igloo",
         "Sigma",
@@ -50,7 +50,10 @@ fun App(keys: List<Char>) {
         randomWord = words.random() // Выбираем рандом слово
     })
 
-    val squares = mutableStateListOf<@Composable () -> Unit>()
+    val squares by remember { mutableStateOf<MutableList<State>>(mutableListOf(State.BASE))}
+    repeat(29) {
+        squares.add(State.BASE)
+    }
 
     val userChar = if (keys.isNotEmpty()) keys[keys.lastIndex] else "F" // последняя буква
     val sigma = floor((keys.size / 5).toDouble()) // кол-во заполненных строк.
@@ -66,9 +69,7 @@ fun App(keys: List<Char>) {
         for (i: Char in randomWord.uppercase()) {
             wordInLine.forEach {
                 if (i == it) {
-
-                    // TODO: ПОЛУЧИТЬ SQUARE ИЗ SQUARES ПОД ИНЕДЕКСОМ randomWord.indexOf(i) И ВЫСТАВИТЬ ЕМУ ЗНАЧЕНИЕ state НА State.Yellow
-                    println(squares)
+                    squares[randomWord.indexOf(i) + 1] = State.YELLOW
                     println("${it} exists in word ${randomWord}. sosal?")
                 }
             }
@@ -91,21 +92,15 @@ fun App(keys: List<Char>) {
             columns = GridCells.Fixed(5),
             modifier = Modifier.size(280.dp, 414.dp),
         ) {
-            itemsIndexed((0..29).toList()) { index, square ->
-//---------------------------------------------------------------------------------------------------//
-
-                val square_ = @Composable () {
-                    Square(
-                        state = State.BASE,
-                        content = {
-                            Text(
-                                text = "${keys.getOrElse(index) { ' ' }}"
-                            )
-                        }
-                    )
-                }
-                squares.add { square_ }
-                square_()
+            itemsIndexed(squares) { index, square ->
+                Square(
+                    state = square,
+                    content = {
+                        Text(
+                            text = "${keys.getOrElse(index) { ' ' }}"
+                        )
+                    }
+                )
             }
         }
     }
