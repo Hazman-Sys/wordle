@@ -18,18 +18,26 @@ import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.compose.ui.text.input.TextFieldValue
 import kotlinx.coroutines.flow.asFlow
+import java.io.File
+import java.nio.file.Files
+import java.nio.file.Paths
 import kotlin.math.floor
 import kotlin.math.round
 
-enum class State(val rgb: Int) {
-    BASE(0xfbfcff),
-    NO(0x787c7e),
-    YELLOW(0xc7b660),
-    GREEN(0x6dab68)
+enum class State(val rgb: Color) {
+    BASE(Color(251, 252, 255)),
+    NO(Color(120, 124, 126)),
+    YELLOW(Color(199, 182, 96)),
+    GREEN(Color(109, 171, 104))
 }
 
 @Composable
 fun App(keys: List<Char>) {
+    val allWords = File("words.txt").readText().split("\r\n", "\n")
+            .filter { it.length == 5 }.map { it.uppercase().trim() }.toSet()
+    val wordsForLevels =
+        File("top.txt").readText().split("\r\n", "\n")
+            .filter { it.length == 5 }.map { it.uppercase() }.toList()
     val words = listOf(
         "Igloo",
         "Sigma",
@@ -46,14 +54,16 @@ fun App(keys: List<Char>) {
         "Ouija"
     )
     var randomWord by remember { mutableStateOf<String>("") }
+    val squares = remember { mutableStateListOf<State>() } // статы
     LaunchedEffect(null, { // LaunchedEffect чтобы каждое нажатие не было новое слово
         randomWord = words.random() // Выбираем рандом слово
+
+        repeat(30) { // добавялем 30 детей (кубиков)
+            squares.add(State.BASE)
+        }
     })
 
-    val squares by remember { mutableStateOf<MutableList<State>>(mutableListOf(State.BASE))}
-    repeat(29) {
-        squares.add(State.BASE)
-    }
+    println(randomWord)
 
     val userChar = if (keys.isNotEmpty()) keys[keys.lastIndex] else "F" // последняя буква
     val sigma = floor((keys.size / 5).toDouble()) // кол-во заполненных строк.
@@ -61,16 +71,26 @@ fun App(keys: List<Char>) {
     if (sigma == keys.size.toDouble() / 5 && keys.isNotEmpty()) { // сравниваем кол-во заполненных строк с кол-вом букв
         val wordInLine = mutableListOf<Char>() // буквы в последней строке
         for (i in 1..5) { // цикл из 5 раз так как в строке 5 букв
-            wordInLine.add(keys.reversed()[if (i > 0) i - 1 else i]) // добавялем буквы с нужными индексами
+            wordInLine.add(keys.reversed()[i - 1]) // добавялем буквы с нужными индексами
         }
-        println("sosal? ${wordInLine.reversed()}") // выводим
+        wordInLine.reverse()
+        println("sosal? ${wordInLine}") // выводим
 
         // сравниваем финальное слово в строке с выбранным словом.
-        for (i: Char in randomWord.uppercase()) {
-            wordInLine.forEach {
-                if (i == it) {
-                    squares[randomWord.indexOf(i) + 1] = State.YELLOW
-                    println("${it} exists in word ${randomWord}. sosal?")
+        wordInLine.forEach { charr ->
+            run { // "break continue in inline lambdas" не поддерживается, используем return@run
+                randomWord.uppercase().forEach { guesswordchar ->
+                    println("dvdfjkggfkhkfghklghghjgjjjjghjghjfj jjg jhgj gjghjgh--------------$charr")
+                    if (squares[randomWord.indexOf(guesswordchar) + 1] != State.BASE) {
+                        return@run // мы уже проверили эту букву, переходим к следующей букве
+                    }
+                    println(randomWord.indexOf(guesswordchar) + 1)
+                    if (guesswordchar == charr) { // желтый если есть в слове
+                        squares[randomWord.indexOf(guesswordchar) + 1] = State.YELLOW
+                        println("${charr} exists in word ${randomWord}. sosal?")
+                    } else { // серый если нет
+                        squares[randomWord.indexOf(guesswordchar) + 1] = State.NO
+                    }
                 }
             }
         }
@@ -156,7 +176,7 @@ fun Square(
             .requiredSize(56.dp, 56.dp)
             .padding(3.dp)
             .clip(RoundedCornerShape(5.dp))
-            .background(Color(state.rgb))
+            .background(state.rgb)
             .border(2.dp, Color(0xffdee1e9), RoundedCornerShape(5.dp))
             .padding(3.dp)
     ) {
